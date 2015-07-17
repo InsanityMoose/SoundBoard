@@ -1,4 +1,4 @@
-# ${1:Project Name}
+# SoundBoard
 
 Simple soundboard application for Windows with global hotkeys 
 
