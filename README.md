@@ -17,7 +17,9 @@ TODO: Write history
 ## Credits
 
 GlobalKeyboardHook.cs from StormySpike (http://www.codeproject.com/Articles/19004/A-Simple-C-Global-Low-Level-Keyboard-Hook)
+
 CSCore from https://cscore.codeplex.com/
+
 InsanityMoose for the mess
 
 ## License
