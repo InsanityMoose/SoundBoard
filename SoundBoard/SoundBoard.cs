@@ -22,8 +22,7 @@ namespace SoundBoard
     public partial class SoundBoard : Form
     {
         List<SoundBite> soundBites = new List<SoundBite>();
-        MMDevice outputDeviceMM;
-        DirectSoundOut outputDeviceDS;
+        string outputDevice = "";
         private int numSoundBites = 14;
         globalKeyboardHook gkh = new globalKeyboardHook();
         private SoundBite sbSetKey;
@@ -43,6 +42,8 @@ namespace SoundBoard
             gkh.KeyDown += new KeyEventHandler(gkh_KeyDown);
             OnPlaybackStop += SoundBoard_OnPlaybackStop;
 
+            outputDevice = (String)Properties.Settings.Default["OutputDevice"];
+
             if (WasapiOut.IsSupportedOnCurrentPlatform)
             {
                 foreach (MMDevice dev in EnumerateWasapiDevices())
@@ -50,10 +51,14 @@ namespace SoundBoard
                     listOutputs.Items.Add(dev);
                     if (dev.DeviceID == Properties.Settings.Default["OutputDevice"] as string)
                         listOutputs.SelectedItem = dev;
-                }
-                if(listOutputs.SelectedItem == null)
-                    listOutputs.Select(0, 1);
-                //listOutputs.Text = listOutputs.Items[0].ToString();
+                    if(outputDevice == "Default")
+                    {
+                        if(GetDefaultDevice().ToString() == dev.ToString())
+                        {
+                            listOutputs.SelectedItem = dev;
+                        }
+                    }
+                }                  
             }
 
             for (int i = 0; i < numSoundBites; i++)
@@ -74,7 +79,6 @@ namespace SoundBoard
 
         void gkh_KeyDown(object sender, KeyEventArgs e)
         {
-            //lstLog.Items.Add("Down\t" + e.KeyCode.ToString());
             foreach(SoundBite sb in soundBites)
             {
                 if (sb.hotkey == e.KeyCode)
@@ -169,13 +173,25 @@ namespace SoundBoard
             this.KeyPreview = true;
             this.sbSetKey = sender as SoundBite;
             this.KeyDown += SoundBoard_KeyDown;
+            gkh.HookedKeys.Remove(sbSetKey.hotkey);
         }
 
         void SoundBoard_KeyDown(object sender, KeyEventArgs e)
         {
             this.KeyDown -= SoundBoard_KeyDown;
-            this.sbSetKey.hotkey = e.KeyCode;
+            if(sbSetKey.hotkey != Keys.None)
+            {
+                gkh.HookedKeys.Remove(sbSetKey.hotkey);
+            }
             gkh.HookedKeys.Add(e.KeyCode);
+            foreach(SoundBite sb in soundBites)
+            {
+                if(sb.hotkey == e.KeyCode)
+                {
+                    sb.hotkey = Keys.None;
+                }
+            }
+            sbSetKey.hotkey = e.KeyCode;
             Properties.Settings.Default["sbkey" + sbSetKey.id] = e.KeyCode.ToString();
             Properties.Settings.Default.Save();
         }
@@ -225,16 +241,19 @@ namespace SoundBoard
             if (WasapiOut.IsSupportedOnCurrentPlatform)
             {
                 WasapiOut wasapiOut = new WasapiOut();
-                wasapiOut.Device = outputDeviceMM;
+                wasapiOut.Device = getListOutputsSelected();
                 return wasapiOut;
             }
-            else
+            else return null;
+        }
+
+        public MMDevice getListOutputsSelected()
+        {
+            if(toolStrip1.InvokeRequired)
             {
-                DirectSoundOut directSoundOut = new DirectSoundOut();
-                directSoundOut.Device = outputDeviceDS.Device;
-                return directSoundOut;
+                return (MMDevice)toolStrip1.Invoke(new Func<MMDevice>(() => getListOutputsSelected()));
             }
-                
+            else return (MMDevice)listOutputs.SelectedItem;
         }
 
         public IEnumerable<DirectSoundDevice> EnumerateDirectSoundDevices()
@@ -254,19 +273,23 @@ namespace SoundBoard
         {
             if(WasapiOut.IsSupportedOnCurrentPlatform)
             {
-                outputDeviceMM = listOutputs.SelectedItem as MMDevice;
-                listOutputs.Text = outputDeviceMM.ToString();
-                Properties.Settings.Default["OutputDevice"] = outputDeviceMM.DeviceID;
+                listOutputs.Text = getListOutputsSelected().ToString();
+                Properties.Settings.Default["OutputDevice"] = getListOutputsSelected().DeviceID;
                 Properties.Settings.Default.Save();
-            }
-            else
+            }          
+        }
+
+        private MMDevice GetDefaultDevice()
+        {
+            if(WasapiOut.IsSupportedOnCurrentPlatform)
             {
-                outputDeviceDS = listOutputs.SelectedItem as DirectSoundOut;
-                listOutputs.Text = outputDeviceDS.ToString();
-                Properties.Settings.Default["OutputDevice"] = outputDeviceDS.Device.ToString();
-                Properties.Settings.Default.Save();
+                using (var enumerator = new MMDeviceEnumerator())
+                {
+                    MMDevice dev = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console);
+                    return dev;
+                }
             }
-            
+            return null;
         }
     }
 }
