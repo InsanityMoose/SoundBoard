@@ -29,6 +29,7 @@ namespace SoundBoard
         public delegate void OnPlaybackStopHandler(object sender, EventArgs e);
         public event OnPlaybackStopHandler OnPlaybackStop;
         private List<SoundBite> SoundBitePlaying = new List<SoundBite>();
+        private ISoundOut soundOut;
 
         public SoundBoard()
         {
@@ -164,8 +165,14 @@ namespace SoundBoard
                     gkh.HookedKeys.Add(hk);
                 }
             }
+            sb.OnPlayStop += sb_OnPlayStop;
             soundBites.Add(sb);
             sb.Parent = flowLayoutPanel1;
+        }
+
+        void sb_OnPlayStop(object sender, EventArgs e)
+        {
+            if(soundOut.PlaybackState != PlaybackState.Stopped) soundOut.Stop();
         }
 
         void sb_OnHotkeySetStart(object sender, EventArgs e)
@@ -216,7 +223,7 @@ namespace SoundBoard
             using (IWaveSource soundSource = CodecFactory.Instance.GetCodec(filename as string))
             {
                 //SoundOut implementation which plays the sound
-                using (ISoundOut soundOut = GetSoundOut())
+                using (soundOut = GetSoundOut())
                 {                   
                     //Tell the SoundOut which sound it has to play
                     soundOut.Initialize(soundSource);
@@ -230,7 +237,7 @@ namespace SoundBoard
                     }
 
                     //Stop the playback
-                    soundOut.Stop();
+                    if(soundOut.PlaybackState != PlaybackState.Stopped) soundOut.Stop();
                     OnPlaybackStop(this, null);
                 }
             }

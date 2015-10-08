@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using CSCore;
+using CSCore.SoundOut;
 
 namespace SoundBoard
 {
@@ -15,6 +17,31 @@ namespace SoundBoard
     public delegate void HotKeySetHandler(object sender, EventArgs e);
     public delegate void SetHotKeyStartHandler(object sender, EventArgs e);
     public delegate void OnPlaybackStopHandler(object sender, EventArgs e);
+
+    public static class ControlExtensions
+    {
+        public static TResult InvokeEx<TControl, TResult>(this TControl control,
+                                                   Func<TControl, TResult> func)
+            where TControl : Control
+            {
+                return control.InvokeRequired
+                        ? (TResult)control.Invoke(func, control)
+                        : func(control);
+            }
+
+        public static void InvokeEx<TControl>(this TControl control,
+                                              Action<TControl> func)
+            where TControl : Control
+            {
+                control.InvokeEx(c => { func(c); return c; });
+            }
+
+        public static void InvokeEx<TControl>(this TControl control, Action action)
+            where TControl : Control
+            {
+                control.InvokeEx(c => action());
+            }
+    }
 
     public partial class SoundBite : UserControl
     {
@@ -33,6 +60,7 @@ namespace SoundBoard
 
         public string fileName { get { return _fileName; } set { _fileName = value; OnSoundFileChanged(this, null); } }
         private string _fileName;
+        public bool isplaying = false;
 
         public SoundBite()
         {
@@ -50,6 +78,8 @@ namespace SoundBoard
         void SoundBite_OnPlayStop(object sender, EventArgs e)
         {
             this.color = SystemColors.Control;
+            buttonPlay.InvokeEx(() => buttonPlay.Text = "Play");
+            isplaying = false;
         }
 
         void SoundBite_OnHotKeySet(object sender, EventArgs e)
@@ -71,11 +101,20 @@ namespace SoundBoard
                 PlayPressed(this, null);
             }
             this.color = Color.Green;
+            isplaying = true;
+            buttonPlay.Text = "Stop";
         }
 
         private void buttonPlay_Click(object sender, EventArgs e)
         {
-            Play();
+            if (isplaying)
+            {
+                Stop();
+            }
+            else
+            {
+                Play();
+            }
         }
 
         private void labelFile_DragDrop(object sender, DragEventArgs e)
