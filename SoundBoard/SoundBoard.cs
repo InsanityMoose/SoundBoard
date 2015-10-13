@@ -78,16 +78,6 @@ namespace SoundBoard
             }
         }
 
-        void gkh_KeyDown(object sender, KeyEventArgs e)
-        {
-            foreach(SoundBite sb in soundBites)
-            {
-                if (sb.hotkey == e.KeyCode)
-                    sb.Play();
-            }
-            e.Handled = true;
-        } 
-
         private bool DoesSettingExist(string settingName)
         {
             try
@@ -134,6 +124,13 @@ namespace SoundBoard
                     property.PropertyType = typeof(string);
                     Settings.Default.Properties.Add(property);
                 }
+                if (!DoesSettingExist("sbkeymod" + i))
+                {
+                    SettingsProperty property = new SettingsProperty(Settings.Default.Properties["baseSetting"]);
+                    property.Name = "sbkeymod" + i;
+                    property.PropertyType = typeof(string);
+                    Settings.Default.Properties.Add(property);
+                }
             }
         }
 
@@ -165,6 +162,17 @@ namespace SoundBoard
                     gkh.HookedKeys.Add(hk);
                 }
             }
+            string hkmodstring = Settings.Default["sbkeymod" + id] as string;
+            keysConverter = new KeysConverter();
+            if (hkmodstring != "")
+            {
+                Keys hk = (Keys)keysConverter.ConvertFromString(hkmodstring);
+                if (hk != Keys.None)
+                {
+                    sb.hotkeymod = hk;
+                }
+            }
+            
             sb.OnPlayStop += sb_OnPlayStop;
             soundBites.Add(sb);
             sb.Parent = flowLayoutPanel1;
@@ -180,27 +188,55 @@ namespace SoundBoard
             this.KeyPreview = true;
             this.sbSetKey = sender as SoundBite;
             this.KeyDown += SoundBoard_KeyDown;
-            gkh.HookedKeys.Remove(sbSetKey.hotkey);
+            gkh.unhook();
+        }
+
+        void gkh_KeyDown(object sender, KeyEventArgs e)
+        {
+            foreach (SoundBite sb in soundBites)
+            {
+                if (sb.hotkey == e.KeyCode && sb.hotkeymod == Control.ModifierKeys)
+                    sb.Play();
+            }
+            e.Handled = true;
         }
 
         void SoundBoard_KeyDown(object sender, KeyEventArgs e)
-        {
+        {          
+            // Ignore modifiers only
+            if (e.KeyCode == Keys.ControlKey
+                || e.KeyCode == Keys.ShiftKey
+                || e.KeyCode == Keys.Menu
+                ) return;
+
             this.KeyDown -= SoundBoard_KeyDown;
+
+            // Unhook old hotkey
             if(sbSetKey.hotkey != Keys.None)
             {
                 gkh.HookedKeys.Remove(sbSetKey.hotkey);
             }
+
+            // Add key to global hooks
             gkh.HookedKeys.Add(e.KeyCode);
+
+            // Find and remove previous uses of same key combo
             foreach(SoundBite sb in soundBites)
             {
-                if(sb.hotkey == e.KeyCode)
+                if(sb.hotkey == e.KeyCode && sb.hotkeymod == e.Modifiers)
                 {
                     sb.hotkey = Keys.None;
+                    sb.hotkeymod = Keys.None;
                 }
             }
+
             sbSetKey.hotkey = e.KeyCode;
+            sbSetKey.hotkeymod = e.Modifiers;
+
             Properties.Settings.Default["sbkey" + sbSetKey.id] = e.KeyCode.ToString();
+            Properties.Settings.Default["sbkeymod" + sbSetKey.id] = e.Modifiers.ToString();
             Properties.Settings.Default.Save();
+            gkh.hook();
         }
 
         void sb_OnSoundFileChanged(object sender, EventArgs e)

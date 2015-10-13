@@ -57,6 +57,8 @@ namespace SoundBoard
         public int id = -1;
         public Keys hotkey { get { return _hotkey; } set { _hotkey = value; OnHotKeySet(this, null); } }
         private Keys _hotkey;
+        public Keys hotkeymod { get { return _hotkeymod; } set { _hotkeymod = value; OnHotKeySet(this, null); } }
+        private Keys _hotkeymod;
 
         public string fileName { get { return _fileName; } set { _fileName = value; OnSoundFileChanged(this, null); } }
         private string _fileName;
@@ -84,7 +86,10 @@ namespace SoundBoard
 
         void SoundBite_OnHotKeySet(object sender, EventArgs e)
         {
-            this.buttonHotKey.Text = _hotkey.ToString();
+            if(hotkeymod == Keys.None)
+                this.buttonHotKey.Text = _hotkey.ToString();
+            else
+                this.buttonHotKey.Text = hotkeymod.ToString() + "+" + _hotkey.ToString();
         }
 
         void SoundBite_OnSoundFileChanged(object sender, EventArgs e)
