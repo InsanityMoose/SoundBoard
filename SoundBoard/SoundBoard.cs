@@ -161,17 +161,19 @@ namespace SoundBoard
                     sb.hotkey = hk;
                     gkh.HookedKeys.Add(hk);
                 }
-            }
-            string hkmodstring = Settings.Default["sbkeymod" + id] as string;
-            keysConverter = new KeysConverter();
-            if (hkmodstring != "")
-            {
-                Keys hk = (Keys)keysConverter.ConvertFromString(hkmodstring);
-                if (hk != Keys.None)
+
+                string hkmodstring = Settings.Default["sbkeymod" + id] as string;
+                keysConverter = new KeysConverter();
+                if (hkmodstring != "")
                 {
-                    sb.hotkeymod = hk;
+                    Keys hkmod = (Keys)keysConverter.ConvertFromString(hkmodstring);
+                    if (hkmod != Keys.None)
+                    {
+                        sb.hotkeymod = hkmod;
+                    }
                 }
             }
+
             
             sb.OnPlayStop += sb_OnPlayStop;
             soundBites.Add(sb);
@@ -227,6 +229,8 @@ namespace SoundBoard
                 {
                     sb.hotkey = Keys.None;
                     sb.hotkeymod = Keys.None;
+                    Properties.Settings.Default["sbkey" + sb.id] = "";
+                    Properties.Settings.Default["sbkeymod" + sb.id] = "";
                 }
             }
 
