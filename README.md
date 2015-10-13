@@ -10,6 +10,9 @@ TODO: Describe the installation process
 
 TODO: Write usage instructions
 
+## Screenshots
+![Screenshot](/../screenshots/SoundBoard/screenshot.png?raw=true "Screenshot")
+
 ## History
 
 TODO: Write history
